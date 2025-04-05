@@ -1,21 +1,28 @@
 # Weather Cal
 
+> [!WARNING]
+> This is a temporary fix to the original project, intended to make everything working with minimal changes to the code.
+> Please note that this is only tested on my device and thus it might not work for you.
+> There are three widgets items which depend on openweather api: `current`, `future` and `forecast`. For now, only `current` is available.
+
 <img src="https://github.com/mzeryck/Weather-Cal/blob/main/images/header.jpg" width="350" height="330" alt="Screenshot of a sample Weather Cal widget">
 
 This is a Scriptable widget that lets you display, position, and format multiple elements without writing any Javascript code. There are [many built-in widget items](#widget-items), including events, reminders, weather, battery, and much more. Weather Cal also fully supports [custom items](#custom-elements), and you can even [embed existing widgets](#embed-existing-widgets) into Weather Cal layouts.
 
 ## Table of contents
-- [Setup](#setup)
-- [Settings](#settings)
-- [Layout](#layout)
-  - [Widget items](#widget-items)
-  - [Spacing and alignment](#spacing-and-alignment)
-  - [ASCII](#ascii)
-- [Technical details](#technical-details)
-- [Custom elements](#custom-elements)
-  - [Custom backgrounds](#custom-backgrounds)
-  - [Custom items](#custom-items)
-  - [Embed existing widgets](#embed-existing-widgets)
+- [Weather Cal](#weather-cal)
+  - [Table of contents](#table-of-contents)
+  - [Setup](#setup)
+  - [Settings](#settings)
+  - [Layout](#layout)
+    - [Widget items](#widget-items)
+    - [Spacing and alignment](#spacing-and-alignment)
+    - [ASCII](#ascii)
+  - [Technical details](#technical-details)
+  - [Custom elements](#custom-elements)
+    - [Custom backgrounds](#custom-backgrounds)
+    - [Custom items](#custom-items)
+    - [Embed existing widgets](#embed-existing-widgets)
 
 ## Setup
 Setting up Weather Cal is easy:
