@@ -2,7 +2,7 @@
 
 > [!WARNING]
 > This is a temporary fix to the original project, intended to make everything working with minimal changes to the code.
-> Please note that this is only tested on my device and thus it might not work for you.
+> Please note that this is **only** tested on my device and thus it might **not** work for you.
 > There are three widgets items which depend on openweather api: `current`, `future` and `forecast`. For now, only `current` is available.
 
 <img src="https://github.com/mzeryck/Weather-Cal/blob/main/images/header.jpg" width="350" height="330" alt="Screenshot of a sample Weather Cal widget">
