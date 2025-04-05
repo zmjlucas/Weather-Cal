@@ -1,3 +1,21 @@
+/* Note (zmjlucas 2025/04/05)
+Since openweather opencall 3.0 api is no longer available for free subscription, 
+I changed the api call from 3.0/onecall to 2.5/weather. Unluckily, the data fields
+between apis are different, so I only inplemented the `current` feature. To make
+`future` and `forecast` work, we will need to call the 2.5/forecast api.
+
+Here are all the changes:
+  - Update code is disabled
+
+  (involving downloading the original code on github)
+
+  - Reset widget is disabled
+
+  (involving downloading the original code on github)
+
+Please note that these fixes are temporary and are only tested on my device.
+*/
+
 // Variables used by Scriptable.
 // These must be at the very top of the file. Do not edit.
 // icon-color: deep-purple; icon-glyph: calendar;
@@ -109,6 +127,9 @@ const weatherCal = {
     if (response == menu.preferences) { return await this.editPreferences() }
 
     if (response == menu.update) {
+      await this.generateAlert("Update code feature is disabled. (zmjlucas)")
+      return
+
       if (await this.generateAlert("Would you like to update the Weather Cal code? Your widgets will not be affected.",["Update", "Exit"])) return
       const success = await this.downloadCode(codeFilename, gitHubUrl)
       return await this.generateAlert(success ? "The update is now complete." : "The update failed. Please try again later.")
@@ -163,6 +184,9 @@ const weatherCal = {
 
       // Reset the widget.
       else if (otherResponse == 1) {
+        await this.generateAlert("Reset widget feature is disabled. (zmjlucas)")
+        return
+
         const alert = new Alert()
         alert.message = "Are you sure you want to completely reset this widget?"
         alert.addDestructiveAction("Reset")
@@ -191,7 +215,7 @@ const weatherCal = {
     this.writePreference("weather-cal-api-key", apiKey)
     
     const apiResponse = await this.getWeatherApiPath(apiKey)
-    if (apiResponse && apiResponse.current) { 
+    if (apiResponse && apiResponse.main) { 
       await this.generateAlert("The API key worked and was saved.",[firstRun ? "Continue" : "OK"]) 
     } else if (firstRun) {
       await this.generateAlert("New OpenWeather API keys may take a few hours to activate. Your widget will start displaying weather information once it's active.",["Continue"]) 
@@ -203,32 +227,22 @@ const weatherCal = {
   
   // Get the API path, or the test response if a new API key is provided.
   async getWeatherApiPath(newApiKey) {
+    const apiPath = "https://api.openweathermap.org/data/2.5/weather"
     const apiParameter = "?appid=" + (newApiKey || this.fm.readString(this.fm.joinPath(this.fm.libraryDirectory(), "weather-cal-api-key")).replace(/\"/g,""))
-    const apiPathPreference = this.fm.joinPath(this.fm.libraryDirectory(), "weather-cal-api-path")
-    if (!newApiKey && this.fm.fileExists(apiPathPreference)) {
-      return this.fm.readString(apiPathPreference).replace(/\"/g,"") + apiParameter
+
+    if (!newApiKey) {
+      return apiPath + apiParameter
     }
     
-    async function checkApiKey(path) {
-      const req = new Request(path + apiParameter + "&lat=37.332280&lon=-122.010980")
+    async function checkApiKey() {
+      const req = new Request(apiPath + apiParameter + "&lat=37.332280&lon=-122.010980")
       let response
       try { response = await req.loadJSON() } catch { }
       return response
     }
 
-    let apiPath = "https://api.openweathermap.org/data/3.0/onecall"
-    let apiResponse = await checkApiKey(apiPath)
-    
-    if (apiResponse && apiResponse.cod) { 
-      apiPath = "https://api.openweathermap.org/data/2.5/onecall" 
-      apiResponse = await checkApiKey(apiPath)
-    }
-    
-    if (apiResponse && !apiResponse.cod) {
-      this.writePreference("weather-cal-api-path", apiPath)
-    }
-    
-    return newApiKey ? apiResponse : apiPath + apiParameter
+    let response = await checkApiKey()
+    return response
   },
 
   // Set the background of the widget.
@@ -896,7 +910,7 @@ const weatherCal = {
 	if (!sunData || sunData.cacheExpired) {
 		try {
 			const apiPath = await this.getWeatherApiPath()
-			const sunReq = apiPath + "&lat=" + this.data.location.latitude + "&lon=" + this.data.location.longitude + "&exclude=minutely,alerts&units=" + this.settings.widget.units + "&lang=" + locale
+			const sunReq = apiPath + "&lat=" + this.data.location.latitude + "&lon=" + this.data.location.longitude + "&units=" + this.settings.widget.units + "&lang=" + locale
 			sunData = await new Request(sunReq).loadJSON()
 			if (sunData.cod) { sunData = null }
 			if (sunData) { this.fm.writeString(sunPath, JSON.stringify(sunData)) }
@@ -904,9 +918,9 @@ const weatherCal = {
 	}
 
     this.data.sun = {}
-    this.data.sun.sunrise = sunData ? sunData.daily[0].sunrise*1000 : null
-    this.data.sun.sunset = sunData ? sunData.daily[0].sunset*1000 : null
-    this.data.sun.tomorrow = sunData ? sunData.daily[1].sunrise*1000 : null
+    this.data.sun.sunrise = sunData ? sunData.sys.sunrise*1000 : null
+    this.data.sun.sunset = sunData ? sunData.sys.sunset*1000 : null
+    this.data.sun.tomorrow = null
   },
 
   // Set up the weather data object.
@@ -933,9 +947,9 @@ const weatherCal = {
     if (!weatherData || weatherData.cacheExpired) {
       try {
         const apiPath = await this.getWeatherApiPath()
-        const weatherReq = apiPath + "&lat=" + this.data.location.latitude + "&lon=" + this.data.location.longitude + "&exclude=minutely,alerts&units=" + this.settings.widget.units + "&lang=" + locale
+        const weatherReq = apiPath + "&lat=" + this.data.location.latitude + "&lon=" + this.data.location.longitude + "&units=" + this.settings.widget.units + "&lang=" + locale
         weatherData = await new Request(weatherReq).loadJSON()
-        if (weatherData.cod) { weatherData = null }
+        if (weatherData.cod != 200) { weatherData = null }
         if (weatherData) { this.fm.writeString(weatherPath, JSON.stringify(weatherData)) }
       } catch {}
     }
@@ -944,21 +958,21 @@ const weatherCal = {
     const english = (locale.split("_")[0] == "en")
 
     this.data.weather = {}
-    this.data.weather.currentTemp = weatherData ? weatherData.current.temp : null
-    this.data.weather.currentCondition = weatherData ? weatherData.current.weather[0].id : 100
-    this.data.weather.currentDescription = weatherData ? (english ? weatherData.current.weather[0].main : weatherData.current.weather[0].description) : "--"
-    this.data.weather.todayHigh = weatherData ? weatherData.daily[0].temp.max : null
-    this.data.weather.todayLow = weatherData ? weatherData.daily[0].temp.min : null
+    this.data.weather.currentTemp = weatherData ? weatherData.main.temp : null
+    this.data.weather.currentCondition = weatherData ? weatherData.weather[0].id : 100
+    this.data.weather.currentDescription = weatherData ? (english ? weatherData.weather[0].main : weatherData.weather[0].description) : "--"
+    this.data.weather.todayHigh = weatherData ? weatherData.main.temp_max : null
+    this.data.weather.todayLow = weatherData ? weatherData.main.temp_min : null
 
     this.data.weather.forecast = []
     this.data.weather.hourly = []
-    for (let i=0; i <= 7; i++) {
-      this.data.weather.forecast[i] = weatherData ? ({High: weatherData.daily[i].temp.max, Low: weatherData.daily[i].temp.min, Condition: weatherData.daily[i].weather[0].id}) : { High: null, Low: null, Condition: 100 }
-      this.data.weather.hourly[i] = weatherData ? ({Temp: weatherData.hourly[i].temp, Condition: weatherData.hourly[i].weather[0].id}) : { Temp: null, Condition: 100 }
-    }
+    // for (let i=0; i <= 7; i++) {
+    //   this.data.weather.forecast[i] = weatherData ? ({High: weatherData.daily[i].temp.max, Low: weatherData.daily[i].temp.min, Condition: weatherData.daily[i].weather[0].id}) : { High: null, Low: null, Condition: 100 }
+    //   this.data.weather.hourly[i] = weatherData ? ({Temp: weatherData.hourly[i].temp, Condition: weatherData.hourly[i].weather[0].id}) : { Temp: null, Condition: 100 }
+    // }
 
-    this.data.weather.tomorrowRain = weatherData ? weatherData.daily[1].pop * 100 : null
-    this.data.weather.nextHourRain = weatherData ? weatherData.hourly[1].pop * 100 : null
+    this.data.weather.tomorrowRain = null
+    this.data.weather.nextHourRain = null
   },
 
   // Set up the COVID data object.
